@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import os
+from PyPDF2 import PdfReader
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
@@ -24,8 +25,18 @@ def index():
 
     if request.method == "POST":
         file = request.files["resume"]
-        text = file.read().decode("utf-8", errors="ignore").lower()
 
+        # ✅ PDF + TXT handling
+        if file.filename.endswith(".pdf"):
+            reader = PdfReader(file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
+            text = text.lower()
+        else:
+            text = file.read().decode("utf-8", errors="ignore").lower()
+
+        # ✅ Skill matching
         for skill, value in skills.items():
             if skill in text:
                 score += value
@@ -39,7 +50,6 @@ def index():
 
     return render_template("index.html", score=None)
 
-import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
